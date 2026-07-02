@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golf Score Leaderboard</title>
+    <!-- โหลด Tailwind CSS เพื่อความสะดวกในการดีไซน์ Responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- ใช้ฟอนต์ Kanit สไตล์โมเดิร์นยอดนิยมในไทย -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #F9FAFB;
+        }
+        /* ปรับแต่งสไลเดอร์หรืออินพุตสปินเนอร์ให้สะอาดตา */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="text-[#3A3A3C] p-4 flex justify-center min-h-screen">
+
+    <div class="w-full max-w-md">
+        <!-- ส่วนหัว (Header) สไตล์ไล่เฉดสีพาสเทลละมุน -->
+        <header class="text-center mb-5 p-6 bg-gradient-to-br from-[#EAE2F8] to-[#DDF0E5] rounded-3xl shadow-sm border border-white/50">
+            <h1 class="text-2xl font-semibold text-[#4A3E56] mb-1">กอล์ฟก๊วนเรา ⛳</h1>
+            <p class="text-xs text-[#6B5B7B] tracking-wide font-light">คำนวณ Net Score เรียงอันดับอัตโนมัติ ส่งแชร์เข้า LINE ง่ายสุดๆ</p>
+        </header>
+
+        <!-- แถบอธิบายสูตรคำนวณกอล์ฟ (Golf Formula Banner) -->
+        <div class="bg-gradient-to-r from-[#FFF9F2] to-[#FFF3EB] rounded-2xl p-4 mb-5 text-xs text-[#8E7060] flex items-start gap-2.5 border border-[#FFE7D9]">
+            <span class="text-base leading-none">💡</span>
+            <div>
+                <strong class="block mb-0.5">สูตรการคำนวณคะแนนกอล์ฟสุทธิ:</strong>
+                Gross Score (คะแนนดิบ) − Handicap (แต้มต่อ) = <strong class="text-[#C15C3D]">Net Score (คะแนนสุทธิ)</strong> 
+                <span class="block mt-1 text-[11px] text-[#A58B7E] font-light">*กติกา: ผู้ที่ทำคะแนนสุทธิ (Net Score) ได้น้อยที่สุด จะได้อันดับที่ดีที่สุด!</span>
+            </div>
+        </div>
+
+        <!-- การ์ดจัดการผู้เล่นและการกรอกข้อมูลคะแนน -->
+        <div class="bg-white rounded-3xl p-5 mb-5 shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-base font-semibold text-[#4A4A4A]">จัดการรายชื่อผู้เล่น</span>
+                <button onclick="addPlayerRow()" class="bg-[#D4E6B5] hover:bg-[#C9DCAB] text-[#4A5D2E] px-3.5 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 flex items-center gap-1">
+                    <span>➕</span> เพิ่มผู้เล่น
+                </button>
+            </div>
+
+            <!-- ส่วนหัวข้อคอลัมน์ -->
+            <div class="grid grid-cols-12 gap-2 mb-2 text-xs text-[#8E8E93] text-center font-semibold">
+                <div class="col-span-4 text-left pl-2">ชื่อเล่น</div>
+                <div class="col-span-2.5">Gross (ตีดิบ)</div>
+                <div class="col-span-2.5">HC (แต้มต่อ)</div>
+                <div class="col-span-2">Net Score</div>
+                <div class="col-span-1"></div>
+            </div>
+
+            <!-- กล่องรายชื่อผู้เล่น -->
+            <div id="players-container" class="space-y-3">
+                <!-- ข้อมูลแถวเริ่มต้นจะถูกนำเข้าด้วย JavaScript -->
+            </div>
+
+            <!-- ปุ่มคำนวณผลลัพธ์ -->
+            <button onclick="calculateAndRank()" class="w-full mt-5 py-3.5 bg-gradient-to-r from-[#C5A3FF] to-[#A8D8B9] hover:from-[#B894F4] hover:to-[#99CBAA] text-white font-medium rounded-2xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                🏆 ประมวลผลและจัดอันดับผู้นำ
+            </button>
+        </div>
+
+        <!-- การ์ดแสดงผลตารางจัดอันดับ (Leaderboard) -->
+        <div id="leaderboard-section" class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 hidden transition-all duration-300">
+            <div class="text-base font-semibold text-[#4A4A4A] mb-4 flex items-center gap-2">
+                <span>📊</span> <span>อันดับคะแนนสุทธิ (Net Score)</span>
+            </div>
+            
+            <div id="leaderboard-list" class="space-y-3 mb-4">
+                <!-- รายชื่อลำดับคะแนนจะแสดงขึ้นตรงนี้ -->
+            </div>
+
+            <!-- ปุ่มแชร์ลง LINE ทางอ้อมโดยการ Copy -->
+            <button onclick="copyToClipboard()" class="w-full py-3.5 bg-[#06C755] hover:bg-[#05B34C] text-white font-medium rounded-2xl flex items-center justify-center gap-2.5 shadow-sm transition-all active:scale-[0.98]">
+                <!-- LINE SVG Icon -->
+                <svg class="w-5.5 h-5.5 fill-current" viewBox="0 0 24 24">
+                    <path d="M24 10.2c0-4.6-4.9-8.4-11-8.4S2 5.6 2 10.2c0 4.1 3.9 7.6 9.2 8.3.4.1.9.4 1 .9l.3 1.8c.1.5.4.7.8.4.3-.2 1.6-1.1 2.3-1.6.3-.2.5-.2.8-.2 4.8-.4 7.6-3.8 7.6-8.8zm-14.7 2.1c-.6 0-1.1-.5-1.1-1.1v-2.3c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v2.3c0 .6-.5 1.1-1.1 1.1zm3.8 0c-.6 0-1.1-.5-1.1-1.1v-2.3c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v2.3c0 .6-.5 1.1-1.1 1.1zm3.8 0c-.6 0-1.1-.5-1.1-1.1v-2.3c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v2.3c0 .6-.5 1.1-1.1 1.1z"/>
+                </svg>
+                คัดลอกสรุปคะแนนส่งเข้า LINE
+            </button>
+        </div>
+    </div>
+
+    <!-- ระบบแจ้งเตือน Custom Premium Toast (เลิกใช้ alert ดั้งเดิม) -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800/95 text-white text-sm px-5 py-3.5 rounded-2xl shadow-lg transition-all duration-300 opacity-0 transform translate-y-4 pointer-events-none flex items-center gap-2.5 z-50 max-w-xs">
+        <span id="toast-icon" class="text-base">💡</span>
+        <span id="toast-text" class="font-light">แจ้งเตือนสถานะ</span>
+    </div>
+
+    <script>
+        // ข้อมูลตัวอย่างเริ่มต้นเพื่อให้ก๊วนผู้เล่นเห็นตัวอย่างในครั้งแรก
+        const defaultPlayers = [
+            { name: 'อเล็กซ์', gross: 85, handicap: 12 },
+            { name: 'บอย', gross: 92, handicap: 18 },
+            { name: 'ชัย', gross: 79, handicap: 5 }
+        ];
+
+        window.onload = function() {
+            const container = document.getElementById('players-container');
+            defaultPlayers.forEach(p => {
+                container.appendChild(createPlayerRow(p.name, p.gross, p.handicap));
+            });
+            // คำนวณอันดับให้เห็นตั้งแต่เปิดเว็บเลย
+            calculateAndRank();
+        };
+
+        // ฟังก์ชันสร้างแถวข้อมูลผู้เล่นพร้อมระบบ Live Calculation
+        function createPlayerRow(name = '', gross = '', handicap = '') {
+            const row = document.createElement('div');
+            row.className = 'player-row grid grid-cols-12 gap-2 items-center bg-[#FAFAFC] p-2.5 rounded-2xl border border-slate-100 transition-all hover:border-slate-200';
+            
+            row.innerHTML = `
+                <div class="col-span-4">
+                    <input type="text" placeholder="ชื่อเล่น" class="input-name w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:border-[#C5A3FF] focus:ring-1 focus:ring-[#C5A3FF] outline-none font-medium" value="${name}">
+                </div>
+                <div class="col-span-2.5">
+                    <input type="number" placeholder="Gross" oninput="calculateLiveNet(this)" class="input-gross w-full bg-white border border-slate-200 rounded-xl py-2 text-center text-xs focus:border-[#C5A3FF] outline-none" value="${gross}">
+                </div>
+                <div class="col-span-2.5">
+                    <input type="number" placeholder="HC" oninput="calculateLiveNet(this)" class="input-handicap w-full bg-white border border-slate-200 rounded-xl py-2 text-center text-xs focus:border-[#C5A3FF] outline-none" value="${handicap}">
+                </div>
+                <!-- ส่วนคำนวณ Net Score สดๆ ในแถว (Gross - HC) -->
+                <div class="col-span-2 text-center font-semibold text-xs text-slate-400 flex flex-col justify-center items-center">
+                    <span class="net-score-preview text-[#6C5B7B] text-sm">-</span>
+                </div>
+                <div class="col-span-1 flex justify-center">
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-red-400 hover:text-red-600 font-bold text-lg w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 transition-all">×</button>
+                </div>
+            `;
+
+            // สั่งคำนวณรอบแรกหลังวาดหน้าเสร็จ
+            setTimeout(() => {
+                const grossInput = row.querySelector('.input-gross');
+                calculateLiveNet(grossInput);
+            }, 0);
+
+            return row;
+        }
+
+        // เพิ่มแถวผู้เล่นใหม่เมื่อกดปุ่ม
+        function addPlayerRow() {
+            const container = document.getElementById('players-container');
+            container.appendChild(createPlayerRow());
+        }
+
+        // ฟังก์ชันคำนวณสดในแถวกรอก
+        function calculateLiveNet(inputElement) {
+            const row = inputElement.closest('.player-row');
+            const grossInput = row.querySelector('.input-gross');
+            const handicapInput = row.querySelector('.input-handicap');
+            const previewDisplay = row.querySelector('.net-score-preview');
+
+            const gross = parseInt(grossInput.value);
+            const handicap = parseInt(handicapInput.value);
+
+            if (!isNaN(gross) && !isNaN(handicap)) {
+                const net = gross - handicap;
+                previewDisplay.innerHTML = `
+                    <span class="text-[9px] text-slate-400 block font-normal leading-none">${gross}-${handicap}</span>
+                    <span class="text-sm font-bold text-[#6C5B7B] block mt-0.5">${net}</span>
+                `;
+            } else {
+                previewDisplay.innerHTML = `<span class="text-slate-300 font-light">-</span>`;
+            }
+        }
+
+        // ฟังก์ชันคำนวณคะแนนทั้งหมดและเรียงลำดับลีดเดอร์บอร์ด
+        function calculateAndRank() {
+            const rows = document.querySelectorAll('.player-row');
+            let list = [];
+
+            rows.forEach(row => {
+                const nameInput = row.querySelector('.input-name');
+                const grossInput = row.querySelector('.input-gross');
+                const handicapInput = row.querySelector('.input-handicap');
+
+                if (nameInput && grossInput && handicapInput) {
+                    const name = nameInput.value.trim();
+                    const gross = parseInt(grossInput.value);
+                    const handicap = parseInt(handicapInput.value);
+
+                    if (name && !isNaN(gross) && !isNaN(handicap)) {
+                        const net = gross - handicap;
+                        list.push({ name, gross, handicap, net });
+                    }
+                }
+            });
+
+            if (list.length === 0) {
+                showToast('กรุณากรอกข้อมูลชื่อเล่น คะแนน Gross และ HC ให้ถูกต้องด้วยครับ', 'warning');
+                return;
+            }
+
+            // จัดอันดับ: กอล์ฟยิ่ง Net Score ต่ำ ยิ่งดีเลิศ (เรียงแบบ Ascending)
+            list.sort((a, b) => a.net - b.net);
+
+            renderLeaderboard(list);
+        }
+
+        // แสดงลีดเดอร์บอร์ดและอันดับที่คำนวณแล้ว
+        function renderLeaderboard(players) {
+            const listContainer = document.getElementById('leaderboard-list');
+            listContainer.innerHTML = '';
+
+            players.forEach((player, index) => {
+                const rank = index + 1;
+                let rankStyle = "bg-slate-100 text-slate-700";
+                let itemBg = "bg-[#FAFAFC] border-slate-100";
+                let rankDisplay = rank;
+
+                // ไฮไลต์ผู้ชนะอันดับ 1 - 3
+                if (rank === 1) {
+                    rankDisplay = '🥇';
+                    rankStyle = "bg-amber-100 text-amber-800 text-base";
+                    itemBg = "bg-amber-50/50 border-amber-100 border-l-4 border-l-amber-400";
+                } else if (rank === 2) {
+                    rankDisplay = '🥈';
+                    rankStyle = "bg-slate-200 text-slate-800 text-base";
+                    itemBg = "bg-slate-50/50 border-slate-200";
+                } else if (rank === 3) {
+                    rankDisplay = '🥉';
+                    rankStyle = "bg-orange-100 text-orange-800 text-base";
+                    itemBg = "bg-orange-50/30 border-orange-100";
+                }
+
+                const card = document.createElement('div');
+                card.className = `flex items-center justify-between p-3.5 rounded-2xl border ${itemBg} transition-all`;
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-semibold ${rankStyle}">
+                            ${rankDisplay}
+                        </div>
+                        <div>
+                            <div class="font-semibold text-sm">${player.name}</div>
+                            <div class="text-[11px] text-[#8E8E93]">Gross (คะแนนดิบ): ${player.gross} | HCP (แต้มต่อ): ${player.handicap}</div>
+                        </div>
+                    </div>
+                    <!-- แสดงสัญลักษณ์สมการการคิดคำนวณ Net Score ให้เห็นชัดๆ -->
+                    <div class="text-right">
+                        <div class="text-[10px] text-slate-400">${player.gross} − ${player.handicap}</div>
+                        <div class="px-3 py-1 bg-violet-50 text-[#6C5B7B] rounded-xl font-bold text-xs mt-0.5">
+                            Net: ${player.net}
+                        </div>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+
+            const section = document.getElementById('leaderboard-section');
+            section.classList.remove('hidden');
+            section.scrollIntoView({ behavior: 'smooth' });
+
+            // บันทึกตารางปัจจุบันไว้เพื่อใช้ในการคัดลอกลง LINE
+            window.latestLeaderboardData = players;
+        }
+
+        // ฟังก์ชันแสดง Toast แจ้งสถานะสวยงาม แทนการใช้ alert() แบบเดิม
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toast-text');
+            const toastIcon = document.getElementById('toast-icon');
+
+            let icon = '💡';
+            if (type === 'success') icon = '✅';
+            if (type === 'error') icon = '❌';
+            if (type === 'warning') icon = '⚠️';
+
+            toastIcon.textContent = icon;
+            toastText.textContent = message;
+
+            toast.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+            }, 3500);
+        }
+
+        // คัดลอกข้อความสรุปไปลงในคลิปบอร์ดแบบรองรับระบบ LINE ในแอป 100%
+        function copyToClipboard() {
+            if (!window.latestLeaderboardData || window.latestLeaderboardData.length === 0) {
+                showToast('ไม่พบข้อมูลผลลัพธ์ที่จะจัดส่ง กรุณากดปุ่มคำนวณก่อนนะครับ', 'error');
+                return;
+            }
+
+            let textMsg = `⛳ สรุปอันดับก๊วนกอล์ฟวันนี้ ⛳\n\n`;
+            window.latestLeaderboardData.forEach((p, i) => {
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+                textMsg += `${medal} คุณ ${p.name}\n   🏆 Net: ${p.net} (Gross: ${p.gross} - HC: ${p.handicap})\n`;
+            });
+            textMsg += `\nคำนวณด้วยแอปคำนวณกอล์ฟพาสเทลแสนสะดวก 🏌️‍♂️✨`;
+
+            // สร้าง Element ชั่วคราวเพื่อรับประกันการ Copy ได้ทุกเบราว์เซอร์ รวมถึง LINE Browser
+            const tempArea = document.createElement('textarea');
+            tempArea.value = textMsg;
+            tempArea.style.position = 'fixed';
+            tempArea.style.left = '-9999px';
+            tempArea.style.top = '0';
+            document.body.appendChild(tempArea);
+            
+            tempArea.focus();
+            tempArea.select();
+            
+            try {
+                const success = document.execCommand('copy');
+                if (success) {
+                    showToast('คัดลอกสรุปคะแนนแล้ว! สามารถกดวาง (Paste) ส่งให้เพื่อนใน LINE ได้เลยครับ', 'success');
+                } else {
+                    showToast('ไม่สามารถคัดลอกได้อัตโนมัติ กรุณาลองคัดลอกด้วยตนเอง', 'error');
+                }
+            } catch (err) {
+                showToast('เกิดข้อผิดพลาดในการคัดลอกเนื่องจากสิทธิ์เบราว์เซอร์', 'error');
+            }
+
+            document.body.removeChild(tempArea);
+        }
+    </script>
+</body>
+</html>
